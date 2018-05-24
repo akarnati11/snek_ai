@@ -19,10 +19,10 @@ pygame.init()
 # 	game_per = 100
 # 	load = False
 
-control = "q_ai"
-game_per = 40
-load = False
-GRAPHICS = False
+CONTROL = "q_ai"
+GAME_PER = 40
+LOAD = True
+GRAPHICS = True
 
 
 block = pygame.image.load("block.png")
@@ -37,7 +37,7 @@ t, new_dir, snake, snake_dirs, score, f_pos = init_game(5, step_size, block_rect
 food_rect = food.get_rect().move(f_pos[0], f_pos[1])
 clock = pygame.time.Clock()
 
-if load and control == "q_ai":
+if LOAD and CONTROL == "q_ai":
 	q_ai.load_Q_list()
 
 c = 0
@@ -50,11 +50,11 @@ while 1:
 		sys.exit()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
-			if control == "q_ai":
+			if CONTROL == "q_ai":
 				q_ai.save_Q_list()
 				print("Episodes:", epis)
 			sys.exit()
-		if control is "q_ai":
+		if CONTROL is "q_ai":
 			# Key event logic
 			pressed = pygame.key.get_pressed()
 			if pressed[pygame.K_UP] and snake_dirs[0] != down:
@@ -70,18 +70,21 @@ while 1:
 				new_dir = left
 				# print("right")
 
-	if t > game_per:
+	if t > GAME_PER:
 		c += 1
-		if control == "reflex_ai":
+		if CONTROL == "reflex_ai":
 			possible_acts = get_p_acts(snake, new_dir, step_size)
 			new_dir = reflex_ai.get_acts(possible_acts, snake, step_size, food_rect)
-		elif control == "minmax_ai":
+		elif CONTROL == "minmax_ai":
 			new_dir = minmax_ai.get_acts(snake, snake_dirs, step_size, food_rect, 3)[0]
-		elif control == "q_ai":
-			eps, alpha = q_ai.get_eps(epis), q_ai.get_alpha(epis)
+		elif CONTROL == "q_ai":
+			if LOAD:
+				eps, alpha = 0, 0
+			else:
+				eps, alpha = q_ai.get_eps(epis), q_ai.get_alpha(epis)
 			epi_rew += q_ai.update_Q(snake, snake_dirs, food_rect, step_size, alpha)
 			new_dir = q_ai.get_act(snake, snake_dirs[0], food_rect, step_size, eps)
-		elif control == "evolve_nn_ai":
+		elif CONTROL == "evolve_nn_ai":
 			print("ddd")
 			# act = evolve_nn_ai.get_act()
 		else:
@@ -112,7 +115,7 @@ while 1:
 
 		# print(snake_dirs)
 
-		if control == "q_ai" and collision(snake, snake_dirs[0], step_size):
+		if CONTROL == "q_ai" and collision(snake, snake_dirs[0], step_size):
 			t, new_dir, snake, snake_dirs, score, f_pos = init_game(5, step_size, block_rect, True)
 			food_rect.x, food_rect.y = f_pos[0], f_pos[1]
 			print("Episode terminated after {} cycles".format(c))
@@ -120,7 +123,7 @@ while 1:
 			c = 0
 			epi_rew = 0
 			epis += 1
-		elif control != "q_ai" and collision(snake, snake_dirs[0], step_size):
+		elif CONTROL != "q_ai" and collision(snake, snake_dirs[0], step_size):
 			t, new_dir, snake, snake_dirs, score, f_pos = init_game(5, step_size, block_rect)
 			food_rect.x, food_rect.y = f_pos[0], f_pos[1]
 
