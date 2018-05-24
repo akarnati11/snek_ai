@@ -14,13 +14,17 @@ Snake chooses actions that put it into a state with a closer Euclidean distance 
 
 ![alt text](caught.png)  
 
-"python3 main.py dumb_ai 100"
+"python3 main.py reflex_ai 100"
 
 ### minmax_ai:
 The snake performs a depth-3 search on possible actions in order to find the best action, which is the one with minimum Euclidean distance sum. Collisions produce an infinite distance too the food and actions that produce collisions are pruned from the search tree.
 
-### q_ai
-Snake uses a reinforcement learning scheme (Q-learning) to take actions. In this model the state consists of relative mapping of the food to the head of the snake, reduced to 4 quadrants, and the relative mapping of the center of mass of the snake to the head of the snake, also reduced to 4 quadrants. The idea behind the reduction is to dramatically reduce the size of the state space, as this is a common issue with classical Q-learning for an environment with thousands of states. I've also kept track of the CoM of the snake as a way for the snake to take into account collisions with the itself, although more testing has to be done to improve this. Additionally, since there is only one high reward state at any given moment (food location), a single step of the snake translates to a small negative reward, as a way to force the snake to reach the food quicker. The actual Q update is a Temporal Difference (TD) error.
+### q_ai:
+Using vanilla Q-learning, snake learns the best actions to take given certain states. The snake game is modeled as a deterministic Markov Decision Process with a reduced state space representation. This reduced state space approach is akin to general dimensionality reduction and allows this simplest type of Q-learning to converge fairly quickly. The features chosen were position of food and position of center of mass of snake relative to the head and binned as one of 8 regions. Epsilon-greedy exploration and temporal difference error approaches were used, both with adaptively shrinking parameters and both starting at 0.5. Reaching food was rewarded with 100, death with -25 and living with -1, as an attempt to drive the snake directly to food. Since the game is deterministic, the discount factor was set high (0.99) to help propogate the sparse positive rewards to past states. The pickle file contains a table trained over 2000 episodes.
+
+Although I tried to account for avoiding self collisions, with indicator variables accounting for relative sides of the snake's head, the snake still tends to kill itself quickly. I chalk this up to the simplified nature of binned Q-learning and have not found an example online of a binned-agent who does better without forbidding self-killing actions.
 
 Third command line arg chooses whether to load a previously trained Q list or to begin exploring with a blank list.  
 "python3 main.py q_ai 100 True"
+
+### dqn_ai:
