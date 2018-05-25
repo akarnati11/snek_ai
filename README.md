@@ -24,7 +24,8 @@ Snake uses a simple reinforcement learning scheme (vanilla Q-learning) to take a
 
 Initially I included a measure of the center of mass of the snake binned relative to the head similar to the food, but this increased the size of the state space dramatically and I noticed that, after 5000 episodes, less than 25% of the state space was explored, whereas without this feature over 90% of the space is explored. This ai performs quite poorly compared to the reflex_ai and minmax_ai, most likely due to the reduced state space and poor approximation of the Q function. Since increasing the number of features makes convergence intractable a more powerful approximation may be the solution.
 
-### dqn_ai:
-
 Third command line arg chooses whether to load a previously trained Q list or to begin exploring with a blank list.  
 "python3 main.py q_ai 100 True"
+
+
+### dqn_ai:
