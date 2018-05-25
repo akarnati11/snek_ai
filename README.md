@@ -14,13 +14,16 @@ Snake chooses actions that put it into a state with a closer Euclidean distance 
 
 ![alt text](caught.png)  
 
-"python3 main.py dumb_ai 100"
+"python3 main.py reflex_ai 100"
 
 ### minmax_ai:
-The snake performs a depth-3 search on possible actions in order to find the best action, which is the one with minimum Euclidean distance sum. Collisions produce an infinite distance too the food and actions that produce collisions are pruned from the search tree.
+The snake performs a depth-3 search on possible actions in order to find the best action, which is the one with minimum Euclidean distance sum. Collisions produce an infinite distance to the food and actions that produce collisions are pruned from the search tree.
 
 ### q_ai
-Snake uses a reinforcement learning scheme (Q-learning) to take actions. In this model the state consists of relative mapping of the food to the head of the snake, reduced to 4 quadrants, and the relative mapping of the center of mass of the snake to the head of the snake, also reduced to 4 quadrants. The idea behind the reduction is to dramatically reduce the size of the state space, as this is a common issue with classical Q-learning for an environment with thousands of states. I've also kept track of the CoM of the snake as a way for the snake to take into account collisions with the itself, although more testing has to be done to improve this. Additionally, since there is only one high reward state at any given moment (food location), a single step of the snake translates to a small negative reward, as a way to force the snake to reach the food quicker. The actual Q update is a Temporal Difference (TD) error.
+Snake uses a simple reinforcement learning scheme (vanilla Q-learning) to take actions. In this simplest form of Q-learning, the quality function is discretized and approximated with a multidimensional table. To effectively use this table, the state space representation is reduced to an boolean indicating whether the left, right and direct sides of the snake's head are clear, as well as the location of the food, both of which are binned as 1 of 4 regions relative to the snake's head. Decaying epsilon-greedy exploration and temporal difference update approaches were used. A reward function of 25 for getting food, -30 for dying and -1 for living was defined as to push the snake away from infinite looping. Since the environment is deterministic and rewards are sparse, I set a high discount factor (0.99), which should help propogate rewards. 
+
+Initially I included a measure of the center of mass of the snake binned relative to the head similar to the food, but this increased the size of the state space dramatically and I noticed that, after 5000 episodes, less than 25% of the state space was explored, whereas without this feature over 90% of the space is explored.
+
 
 Third command line arg chooses whether to load a previously trained Q list or to begin exploring with a blank list.  
 "python3 main.py q_ai 100 True"
