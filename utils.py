@@ -1,5 +1,5 @@
 import random
-import time
+from functools import reduce
 
 size = 720, 720
 
@@ -10,6 +10,9 @@ down = (0, 1)
 
 dirs = [up, left, down, right]
 
+
+def prod(l):
+	return reduce(lambda x, y: x*y, l)
 
 
 def get_p_acts(s, d, ss):
@@ -40,25 +43,18 @@ def gen_new_food(s, ss):
 	return (r_x,r_y)
 
 
-
-
 def adjacent(s_b, b, off, ss, dir_=None):
 	if dir_ is None:
-		flag = False
 		sides = []
-		if s_b.x == b.x and s_b.y == b.y + ss:
-			flag = True
+		if (s_b.x == b.x and s_b.y == b.y + ss) or b.y == 0:
 			sides.append(0)
-		if s_b.x == b.x and s_b.y == b.y - ss:
-			flag = True
+		if (s_b.x == b.x and s_b.y == b.y - ss) or b.y+ss == size[0]:
 			sides.append(2)
-		if s_b.y == b.y and s_b.x == b.x - ss:
-			flag = True
+		if (s_b.y == b.y and s_b.x == b.x - ss) or b.x+ss == size[0]:
 			sides.append(3)
-		if s_b.y == b.y and s_b.x == b.x + ss:
-			flag = True
+		if (s_b.y == b.y and s_b.x == b.x + ss) or b.x == 0:
 			sides.append(1)
-		return flag, sides
+		return len(sides) != 0, sides
 	if dir_ == right and s_b.y == b.y and s_b.x == b.x-off:
 		# print("1")
 		return True
@@ -118,28 +114,27 @@ def get_rel_in_glo(d):
 	return [d, up, down]
 
 
-
 def collision(s, dir_, ss, other_pos=None, self_collide=True, blocking=False):
 	pos = s[0].copy()
 	if other_pos is not None:
 		pos.x, pos.y = other_pos[0], other_pos[1]
 	# Against wall
-	if dir_ == right and pos.x == size[0]:
-		return True
-	elif dir_ == left and pos.x+ss == 0:
-		return True
-	elif dir_ == down and pos.y == size[0]:
-		return True
-	elif dir_== up and pos.y+ss==0:
-		return True
+	if not blocking:
+		if dir_ == right and pos.x == size[0]:
+			return True
+		elif dir_ == left and pos.x+ss == 0:
+			return True
+		elif dir_ == down and pos.y == size[0]:
+			return True
+		elif dir_== up and pos.y+ss==0:
+			return True
 
 	if blocking:
 		sides = list()
 		for seg in s[1:]:
 			_, si = adjacent(pos, seg, 0, ss)
 			sides.extend(si)
-		return set(sides)
-
-	if self_collide:
+		return [dirs[i] for i in set(sides)]
+	elif self_collide:
 		# Against itself
 		return any([adjacent(pos,seg, 0, ss, dir_=dir_) for seg in s[1:]])

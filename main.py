@@ -1,9 +1,8 @@
 import sys, pygame
 import reflex_ai
-import q_ai
-from utils import adjacent, collision, init_game, gen_new_food, get_p_acts, left, right, up, down, size, dirs
+import q_ai, dqn_ai, minmax_ai
+from utils import adjacent, collision, init_game, gen_new_food, get_p_acts, left, right, up, down, size, prod
 import evolve_nn_ai
-import minmax_ai
 import numpy as np
 
 
@@ -20,8 +19,9 @@ pygame.init()
 # 	load = False
 
 CONTROL = "q_ai"
-GAME_PER = 40
-LOAD = True
+GAME_PER = 3000
+LOAD = False
+TESTING = False
 GRAPHICS = True
 
 
@@ -37,17 +37,25 @@ t, new_dir, snake, snake_dirs, score, f_pos = init_game(5, step_size, block_rect
 food_rect = food.get_rect().move(f_pos[0], f_pos[1])
 clock = pygame.time.Clock()
 
+start_size = 5
+
 if LOAD and CONTROL == "q_ai":
 	q_ai.load_Q_list()
 
 c = 0
 epi_rew = 0
 epis = 0
+reward_buffer = []
 while 1:
-	if epis == 2000:
+	if CONTROL == "q_ai" and epis == q_ai.TRAINING_EPIS:
 		q_ai.save_Q_list()
 		print("Episodes:", epis)
 		sys.exit()
+	# elif CONTROL == "dqn_ai" and epis == dqn_ai.TRAINING_EPIS:
+	# 	dqn_ai.save_Q_net()
+	# 	print("Episodes:", epis)
+	# 	dqn_ai.sess.close()
+	# 	sys.exit()
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			if CONTROL == "q_ai":
@@ -70,6 +78,7 @@ while 1:
 				new_dir = left
 				# print("right")
 
+	alpha, eps = 0, 0
 	if t > GAME_PER:
 		c += 1
 		if CONTROL == "reflex_ai":
@@ -78,12 +87,24 @@ while 1:
 		elif CONTROL == "minmax_ai":
 			new_dir = minmax_ai.get_acts(snake, snake_dirs, step_size, food_rect, 3)[0]
 		elif CONTROL == "q_ai":
-			if LOAD:
+			if TESTING:
 				eps, alpha = 0, 0
 			else:
 				eps, alpha = q_ai.get_eps(epis), q_ai.get_alpha(epis)
-			epi_rew += q_ai.update_Q(snake, snake_dirs, food_rect, step_size, alpha)
+			# cur_rew = q_ai.update_Q(snake, snake_dirs, food_rect, step_size, alpha)
+			cur_rew = q_ai.update_Q_sequence(snake, snake_dirs, food_rect, step_size, alpha, start_size, reward_buffer)
+			epi_rew += cur_rew
+			reward_buffer.insert(0, cur_rew)
+			if len(reward_buffer) > start_size:
+				reward_buffer.pop()
 			new_dir = q_ai.get_act(snake, snake_dirs[0], food_rect, step_size, eps)
+		elif CONTROL == "dqn_ai":
+			if TESTING:
+				eps = 0
+			else:
+				eps = dqn_ai.get_eps(epis)
+			epi_rew += dqn_ai.add_exp(snake, snake_dirs, food_rect, step_size)
+			# dqn_ai.train()
 		elif CONTROL == "evolve_nn_ai":
 			print("ddd")
 			# act = evolve_nn_ai.get_act()
@@ -116,15 +137,28 @@ while 1:
 		# print(snake_dirs)
 
 		if CONTROL == "q_ai" and collision(snake, snake_dirs[0], step_size):
-			t, new_dir, snake, snake_dirs, score, f_pos = init_game(5, step_size, block_rect, True)
+			if TESTING:
+				eps, alpha = 0, 0
+			else:
+				eps, alpha = q_ai.get_eps(epis), q_ai.get_alpha(epis)
+			# cur_rew = q_ai.update_Q(snake, snake_dirs, food_rect, step_size, alpha)
+			cur_rew = q_ai.update_Q_sequence(snake, snake_dirs, food_rect, step_size, alpha, start_size, reward_buffer)
+			epi_rew += cur_rew
+			reward_buffer.insert(0, cur_rew)
+			if len(reward_buffer) > start_size:
+				reward_buffer.pop()
+
+			t, new_dir, snake, snake_dirs, score, f_pos = init_game(start_size, step_size, block_rect, True)
 			food_rect.x, food_rect.y = f_pos[0], f_pos[1]
-			print("Episode terminated after {} cycles".format(c))
-			print("Episode reward:", epi_rew)
+			print("Episode {} terminated after {} cycles".format(epis, c))
+			print("Episode {} reward: {}".format(epis, epi_rew))
+			print("Episode {} alpha and eps: {}, {}".format(epis, alpha, eps))
+			print("Q-space explored: {}".format(np.sum(q_ai.space)/prod(q_ai.space.shape)))
 			c = 0
 			epi_rew = 0
 			epis += 1
 		elif CONTROL != "q_ai" and collision(snake, snake_dirs[0], step_size):
-			t, new_dir, snake, snake_dirs, score, f_pos = init_game(5, step_size, block_rect)
+			t, new_dir, snake, snake_dirs, score, f_pos = init_game(start_size, step_size, block_rect)
 			food_rect.x, food_rect.y = f_pos[0], f_pos[1]
 
 
